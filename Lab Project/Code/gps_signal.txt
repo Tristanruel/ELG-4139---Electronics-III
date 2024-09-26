@@ -1,0 +1,35 @@
+lqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqklqqqqqqqqqqqqqqqqqqSeen 15/Used  6k
+x Time:        2024-09-26T00:51:23.000Z (18)xxGNSS   PRN  Elev   Azim   SNR Usex
+x Latitude:         47.34983308 N           xxGP  4    4  45.0  204.0  16.0  Y x
+x Longitude:        64.32987184 W           xxGP  7    7  37.0  302.0  24.0  Y x
+x Alt (HAE, MSL):  11523.862,  11544.606 m  xxGP  9    9  51.0  258.0  14.0  Y x
+x Speed:             0.00 km/h              xxGP 16   16  51.0   57.0  28.0  Y x
+x Track (true, var):     0.0, -17.8     deg xxGP 18   18  10.0   39.0  18.0  Y x
+x Climb:             0.00 m/min             xxGP 27   27  65.0  115.0  25.0  Y x
+x Status:         3D FIX (145 secs)         xxGP  1    1   n/a    0.0   0.0  N x
+x Long Err  (XDOP, EPX):  0.82, +/- 12.3 m  xxGP  8    8  49.0  179.0   0.0  N x
+x Lat Err   (YDOP, EPY):  1.26, +/- 18.8 m  xxGP 20   20   0.0  322.0   0.0  N x
+x Alt Err   (VDOP, EPV):  2.35, +/- 23.0 m  xxGP 26   26  19.0   71.0   0.0  N x
+x 2D Err    (HDOP, CEP):  1.50, +/- 1899 m  xxGP 30   30   7.0  300.0   0.0  N x
+x 3D Err    (PDOP, SEP):  2.79, +/- 1899 m  xxGP 31   31  14.0  117.0   0.0  N x
+x Time Err  (TDOP):       1.67              xxSB120   33  12.0  112.0   0.0  N x
+x Geo Err   (GDOP):       3.25              xxSB133   46  33.0  210.0   0.0  N x
+x ECEF X, VX:    1112207.300 m   -0.040 m/s xxSB138   51  29.0  220.0   0.0  N x
+x ECEF Y, VY:   -4346891.310 m    0.110 m/s xx                                 x
+x ECEF Z, VZ:    4517875.430 m   -0.280 m/s xx                                 x
+x Speed Err (EPS):       +/-  1.9 km/h      xx                                 x
+x Track Err (EPD):        n/a               xx                                 x
+x Time offset:            0.102877539 s     xx                                 x
+x Grid Square:            FN77ui03          xx                                 x
+mqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqjmqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqj
+
+sudo systemctl enable gpsd
+sudo systemctl start gpsd
+
+See GPS: cgps -s
+See pps: sudo ppstest /dev/pps0
+
+
+chronyc sources
+sync performance: chronyc tracking
+

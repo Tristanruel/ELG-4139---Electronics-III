@@ -1,0 +1,14 @@
+pip install gpsd-py3 ntplib pvlib pandas pytz
+pip install gpsd-py3
+sudo apt install libhdf5-dev
+pip install h5py
+pip install pvlib pytz
+sudo apt-get install chrony
+sudo apt install pps-tools
+sudo apt install gpsd gpsd-clients python3-gps
+pip3 install --user RPi.GPIO
+pip3 install --user Adafruit_CircuitPython_DHT
+sudo apt install python3 python3-pip
+sudo apt-get install gpsd gpsd-clients python-gps
+pip install timezonefinder pytz requests pvlib
+pip install RPi.GPIO
