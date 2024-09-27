@@ -1,5 +1,5 @@
 import gpsd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytz
 import ntplib
 import pvlib
@@ -39,7 +39,7 @@ except Exception as e:
     latitude, longitude = 45.365977, -75.602712
     current_time = get_ntp_time()
 
-print_green(f"\nCurrent local date and time: {current_time}")
+print_green(f"Current local date and time: {current_time}")
 print_green(f"Current GPS coordinates: Latitude {latitude}, Longitude {longitude}")
 
 site = Location(latitude, longitude, tz='America/New_York')
@@ -48,26 +48,32 @@ end_time = start_time + timedelta(days=1)
 times_range = pd.date_range(start=start_time, end=end_time, freq='1s', tz=site.tz)
 solar_pos = get_solarposition(times_range, latitude, longitude)
 
-# Find the first time sun is at or just above 10 degrees elevation
-sun_at_10 = solar_pos[solar_pos['elevation'] >= 10]
-if not sun_at_10.empty:
-    first_time_at_10 = sun_at_10.index[0]
+# Filter for elevations between 10 and 11 degrees
+sun_between_10_and_11 = solar_pos[(solar_pos['elevation'] >= 10) & (solar_pos['elevation'] < 11)]
+
+if not sun_between_10_and_11.empty:
+    # Calculate time until the sun reaches exactly 10 degrees
+    first_time_at_10 = sun_between_10_and_11.iloc[0].name
+    last_time_at_10 = sun_between_10_and_11.iloc[-1].name
     time_until_sun_at_10 = first_time_at_10 - current_time
-    if time_until_sun_at_10.total_seconds() > 0:
-        countdown_message = f"Time until the sun is 10 degrees above the horizon: {time_until_sun_at_10}\n"
-        seconds_until_sun_at_10 = int(time_until_sun_at_10.total_seconds())
-        print_green(countdown_message)
-        with open("countdown.txt", "w") as file:
-            file.write(str(seconds_until_sun_at_10))
-    else:
-        print_red("The sun was 10 degrees above the horizon earlier today.\n")
-else:
-    print_red("No time today when the sun reaches 10 degrees elevation.\n")
+    seconds_until_sun_at_10 = int(time_until_sun_at_10.total_seconds())
+    hours = seconds_until_sun_at_10 // 3600
+    remaining_seconds = seconds_until_sun_at_10 % 3600
+    minutes = remaining_seconds // 60
+    seconds = remaining_seconds % 60
+    future_time = current_time + timedelta(seconds=seconds_until_sun_at_10)
 
-# Output the first and last line of data
-if not sun_at_10.empty:
+    print_green(f"Time until the sun is at 10 degrees: {hours:02d}h {minutes:02d}min {seconds:02d}s or at {future_time.strftime('%Y-%m-%d %H:%M:%S')} \n")
+
+    # Write to countdown.txt
+    with open("countdown.txt", "w") as file:
+        file.write(f"{seconds_until_sun_at_10}")
+
+    # Writing the first and last entries to a file
     with open("10degsun.txt", "w") as file:
-        file.write(sun_at_10.head(1).to_string() + '\n')  # First line
-        file.write(sun_at_10.tail(1).to_string())  # Last line
+        file.write(f"First time at 10-11 degrees: {first_time_at_10}\n")
+        file.write(f"Last time at 10-11 degrees: {last_time_at_10}\n")
+else:
+    print_red("There are no times within the next 24 hours when the sun is between 10 and 11 degrees elevation.")
 
-print(sun_at_10)
+print(sun_between_10_and_11)
