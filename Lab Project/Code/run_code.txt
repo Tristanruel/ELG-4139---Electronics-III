@@ -22,3 +22,7 @@ python temperature.py
 python solar_position.py
 nano countdown.txt (meansures the amount of tiem in seconds until the closest time the sun reaches 10 degress)
 nano 10degsun.txt (takes the first and last time the sun passes 10 deg and registers it)
+
+chmod +x weather.sh
+./weather.sh
+

@@ -1,5 +1,5 @@
 import gpsd
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import pytz
 import ntplib
 import pvlib
@@ -26,25 +26,33 @@ def get_ntp_time(ntp_server='time.google.com'):
     ntp_time = datetime.utcfromtimestamp(response.tx_time)
     return ntp_time.replace(tzinfo=pytz.UTC)
 
+# Set default coordinates and timezone
+default_latitude, default_longitude = 45.365977, -75.602712
+default_tz = 'America/New_York'  # Eastern Daylight Time (EDT) or Eastern Standard Time (EST) handled by pytz
+
 try:
     packet = gpsd.get_current()
     if packet.mode < 2:
         raise ValueError("GPS fix not available")
     latitude = packet.lat
     longitude = packet.lon
-    current_time = datetime.now(pytz.timezone('America/New_York')).replace(microsecond=0)
+    gps_time = datetime.now(pytz.timezone(default_tz)).replace(microsecond=0)
+    current_time = gps_time
+    print_green("GPS data used for calculations.")
 except Exception as e:
     print_red(str(e))
-    print_red("Continuing with backup coordinates and NTP time...")
-    latitude, longitude = 45.365977, -75.602712
+    print_red("Using backup coordinates and NTP time...")
+    latitude, longitude = default_latitude, default_longitude
     current_time = get_ntp_time()
+    current_time = current_time.astimezone(pytz.timezone(default_tz))  # Ensure timezone is consistent
 
 print_green(f"Current local date and time: {current_time}")
 print_green(f"Current GPS coordinates: Latitude {latitude}, Longitude {longitude}")
 
-site = Location(latitude, longitude, tz='America/New_York')
+site = Location(latitude, longitude, tz=default_tz)
 start_time = current_time
 end_time = start_time + timedelta(days=1)
+
 times_range = pd.date_range(start=start_time, end=end_time, freq='1s', tz=site.tz)
 solar_pos = get_solarposition(times_range, latitude, longitude)
 
@@ -68,6 +76,9 @@ if not sun_between_10_and_11.empty:
     # Write to countdown.txt
     with open("countdown.txt", "w") as file:
         file.write(f"{seconds_until_sun_at_10}")
+    
+    with open('coords.txt', 'w') as file:
+        file.write(f"{latitude}, {longitude}")
 
     # Writing the first and last entries to a file
     with open("10degsun.txt", "w") as file:

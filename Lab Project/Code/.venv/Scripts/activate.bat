@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=c:\Users\Tristan Ruel\Desktop\uOttawa\Fall 2024\ELG 4139\Lab Project\Code\.venv
+set VIRTUAL_ENV=C:\Users\Tristan Ruel\Desktop\uOttawa\Fall 2024\ELG 4139\Lab Project\Code\.venv
 
 if not defined PROMPT set PROMPT=$P$G
 
