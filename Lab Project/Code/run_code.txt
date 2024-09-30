@@ -3,8 +3,6 @@ python3 -m venv ~/dht22env
 
 cd ~/dht22env
 source bin/activate
-
-
 cd ~
 
 
@@ -26,3 +24,11 @@ nano 10degsun.txt (takes the first and last time the sun passes 10 deg and regis
 chmod +x weather.sh
 ./weather.sh
 
+
+
+cd ~/cpp_project
+nano Dockerfile
+
+nano main.cpp 
+docker build -t cppenv .
+docker run -it cppenv

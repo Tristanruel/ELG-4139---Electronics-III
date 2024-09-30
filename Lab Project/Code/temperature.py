@@ -43,13 +43,18 @@ def read_temp(device_file):
     if equals_pos != -1:
         temp_string = lines[1][equals_pos+2:]
         temp_c = float(temp_string) / 1000.0
+        # Check sensor ID and apply corrections
+        if device_file.endswith('28-3c01f0963fbc/w1_slave'):  # Ground Temperature 1
+            temp_c -= 3.0  # Subtract 3 degrees
+        elif device_file.endswith('28-3c01f0965cb3/w1_slave'):  # Ground Temperature 2
+            temp_c -= 5.0  # Subtract 5 degrees
         return temp_c
 
 try:
     while True:
         # Read from DHT22
         try:
-            temperature = sensor.temperature
+            temperature = sensor.temperature - 4.5
             humidity = sensor.humidity
             if humidity is not None and temperature is not None:
                 print(f"Air Temperature: {temperature:.1f} C")
@@ -66,9 +71,9 @@ try:
         # Read from DS18B20 sensors
         for device_folder in device_folders:
             device_file = device_folder + '/w1_slave'
+            ground_temp = read_temp(device_file)
             sensor_id = device_folder.split('/')[-1]
             sensor_name = sensor_names.get(sensor_id, 'Unknown Sensor')
-            ground_temp = read_temp(device_file)
             print(f"{sensor_name}: {ground_temp:.1f} °C")
 
         # Delay for a second before the next read
