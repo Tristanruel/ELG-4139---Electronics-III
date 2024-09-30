@@ -3,7 +3,7 @@ import RPi.GPIO as GPIO
 # Set up GPIO pins
 relay_pins = {1: 6, 2: 13, 3: 19, 4: 26}
 GPIO.setmode(GPIO.BCM)  # Use Broadcom pin-numbering scheme
-GPIO.setup(list(relay_pins.values()), GPIO.OUT, initial=GPIO.HIGH)  # Initialize pins as outputs, set to HIGH
+GPIO.setup(list(relay_pins.values()), GPIO.OUT, initial=GPIO.HIGH)  
 
 def relay_command(command):
     """
@@ -14,11 +14,11 @@ def relay_command(command):
         relay_number, state = command.split()
         relay_number = int(relay_number)
         if relay_number in relay_pins:
-            if state.upper() == 'ON':
-                GPIO.output(relay_pins[relay_number], GPIO.LOW)  # Active-low relay ON
+            if state.upper() == 'OFF':
+                GPIO.output(relay_pins[relay_number], GPIO.HIGH)  
                 print(f"Relay {relay_number} turned ON")
-            elif state.upper() == 'OFF':
-                GPIO.output(relay_pins[relay_number], GPIO.HIGH)  # Active-low relay OFF
+            elif state.upper() == 'ON':
+                GPIO.output(relay_pins[relay_number], GPIO.LOW) 
                 print(f"Relay {relay_number} turned OFF")
             else:
                 print("Invalid command")
