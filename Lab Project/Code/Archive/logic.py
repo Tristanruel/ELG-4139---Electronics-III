@@ -41,12 +41,6 @@ weather_data = {
     'forecasted_precipitation': 0.0, # Total forecasted precipitation in mm
 }
 
-# Initialize total water applied
-total_water_applied = 4.27  # Initial total water applied, in Liters
-sun_between_10_and_11_degrees = False  # Flag to indicate sun position
-W_final_value = 0.0
-runtime_seconds_value = 0.0
-
 def update_weather_data(current, past_precip, forecast):
     """
     Update the shared weather_data dictionary with new data.
@@ -57,7 +51,6 @@ def update_weather_data(current, past_precip, forecast):
         weather_data['forecasted_precipitation'] = forecast
 
 def calculate_adjusted_water_need():
-    global total_water_applied
     with sensor_data_lock, weather_data_lock:
         current_sensor_data = sensor_data.copy()
         current_weather = weather_data['current_weather']
@@ -91,16 +84,11 @@ def calculate_adjusted_water_need():
     W_adj = W_BASE * F_env
 
     # precipitation adjustments
-    # total precipitation to subtract (convert mm to L)
-    if demo_mode:
-        max_forecast_precipitation = 2 # mm
-        P_forecast_limited = min(P_forecast, max_forecast_precipitation)
-        P_total = (P_past + P_forecast_limited) * GARDEN_AREA
-    else:
-        P_total = (P_past + P_forecast) * GARDEN_AREA # mm * m² = L
+    # tot precipitation to subtract (convert mm to L)
+    P_total = (P_past + P_forecast) * GARDEN_AREA  # mm * m² = L
 
     # adjusted water need after precipitation
-    W_final = W_adj - P_total - total_water_applied
+    W_final = W_adj - P_total
     W_final = max(W_final, 0)  # ensure non-negative water need
 
     # runtime
@@ -109,31 +97,7 @@ def calculate_adjusted_water_need():
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
     print(f"Sprinkler needs to run for {runtime_seconds:.2f} seconds. This equals {W_final:.2f}L of water for a garden of {GARDEN_AREA:.2f} square meters.")
-    print(f"Total water applied: {total_water_applied:.2f} L.\n")
-    """
-    print(f"T_current: {T_current}")
-    print(f"H_current: {H_current}")
-    print(f"F_temp: {F_temp}")
-    print(f"F_hum: {F_hum}")
-    print(f"F_wind: {F_wind}")
-    print(f"F_solar: {F_solar}")
-    print(f"F_env: {F_env}")
-    print(f"W_BASE: {W_BASE}")
-    print(f"W_adj: {W_adj}")
-    print(f"P_past: {P_past}")
-    print(f"P_forecast: {P_forecast}")
-    print(f"P_forecast_limited: {P_forecast_limited}")
-    print(f"P_total: {P_total}")
-    print(f"Total Water Applied: {total_water_applied}")
-    print(f"W_final before max check: {W_adj - P_total - total_water_applied}")
-    """
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
-    print(f"Sprinkler needs to run for {runtime_seconds:.2f} seconds. This equals {W_final:.2f}L of water for a garden of {GARDEN_AREA:.2f} square meters.")
-    print(f"Total water applied: {total_water_applied:.2f} L.\n")
-
-    global W_final_value, runtime_seconds_value
-    W_final_value = W_final
-    runtime_seconds_value = runtime_seconds
+    print(f"Total water applied: {P_total:.2f} L.\n")
 
 def calculate_water_need_wrapper():
     """
@@ -151,7 +115,6 @@ def schedule_tasks():
     - solar_position_function every 60 seconds
     - weathersql_function and weather_terminal_function 20 seconds after solar_position_function
     - calculate_adjusted_water_need 35 seconds after solar_position_function
-    - check_and_run_sprinkler 40 seconds after solar_position_function
     """
     while True:
         now = datetime.now()
@@ -170,21 +133,41 @@ def schedule_tasks():
 
         threading.Timer(35, calculate_water_need_wrapper).start()
 
-        threading.Timer(40, check_and_run_sprinkler).start()
-
 def run_weathersql_and_terminal():
     """
     Function to run weathersql_function and weather_terminal_function concurrently.
     After fetching weather data, update the shared weather_data dictionary.
     """
-    weathersql_thread = threading.Thread(target=weathersql_function)
-    weather_terminal_thread = threading.Thread(target=weather_terminal_function)
+    def weathersql_thread_func():
+        # Fetch weather data (simulate fetching current and forecasted precipitation)
+        # Replace this with actual data fetching logic
+        current_weather = {
+            'temp_c': 25.0,
+            'humidity': 60,
+            'wind_kph': 10,
+            'cloud': 40,
+            'uv': 7,
+            # Add other necessary fields as needed
+        }
+        # Simulate past and forecasted precipitation
+        past_precipitation = 5.0  # mm
+        forecasted_precipitation = 10.0  # mm
 
-    weathersql_thread.start()
-    weather_terminal_thread.start()
+    
+        update_weather_data(current_weather, past_precipitation, forecasted_precipitation)
 
-    weathersql_thread.join()
-    weather_terminal_thread.join()
+    def weather_terminal_thread_func():
+        # placeholder
+        pass  
+
+    weathersql = threading.Thread(target=weathersql_thread_func)
+    weather_terminal = threading.Thread(target=weather_terminal_thread_func)
+
+    weathersql.start()
+    weather_terminal.start()
+
+    weathersql.join()
+    weather_terminal.join()
 
 # ==========================
 # End of Logic.py
@@ -230,7 +213,7 @@ def temperature_function():
             temp_c = float(temp_string) / 1000.0
             # Check sensor ID and apply corrections
             if device_file.endswith('28-3c01f0963fbc/w1_slave'):  # Ground Temperature 1
-                temp_c -= 5.0  # Subtract 3 degrees
+                temp_c -= 3.0  # Subtract 3 degrees
             elif device_file.endswith('28-3c01f0965cb3/w1_slave'):  # Ground Temperature 2
                 temp_c -= 5.0  # Subtract 5 degrees
             return temp_c
@@ -281,41 +264,38 @@ def temperature_function():
         print("\nTemperature monitoring stopped by User")
         GPIO.cleanup()
 
-relay_pins = {1: 6, 2: 13, 3: 19, 4: 26}
-
-def print_green(text):
-    print(f"\033[92m{text}\033[0m")
-
-def print_red(text):
-    print(f"\033[91m{text}\033[0m")
-
-def relay_command(command):
-    """
-    Accepts a command string to control relays, e.g., '1 ON', '2 OFF'.
-    Handles active-low relays where 'ON' means setting GPIO to LOW.
-    """
-    try:
-        relay_number, state = command.split()
-        relay_number = int(relay_number)
-        if relay_number in relay_pins:
-            if state.upper() == 'OFF':
-                GPIO.output(relay_pins[relay_number], GPIO.HIGH)  
-                print(f"Relay {relay_number} turned OFF")
-            elif state.upper() == 'ON':
-                GPIO.output(relay_pins[relay_number], GPIO.LOW) 
-                print(f"Relay {relay_number} turned ON")
-            else:
-                print("Invalid state. Use 'ON' or 'OFF'.")
-        else:
-            print("Invalid relay number.")
-    except ValueError:
-        print("Command format error. Use '<relay number> <ON/OFF>'.")
-
 def relay_function():
-    GPIO.setmode(GPIO.BCM) 
+
+    relay_pins = {1: 6, 2: 13, 3: 19, 4: 26}
+    GPIO.setmode(GPIO.BCM)  # Use Broadcom pin-numbering scheme
     GPIO.setup(list(relay_pins.values()), GPIO.OUT, initial=GPIO.HIGH)  
 
+    def relay_command(command):
+        """
+        Accepts a command string to control relays, e.g., '1 ON', '2 OFF'.
+        Handles active-low relays where 'ON' means setting GPIO to LOW.
+        """
+        try:
+            relay_number, state = command.split()
+            relay_number = int(relay_number)
+            if relay_number in relay_pins:
+                if state.upper() == 'OFF':
+                    GPIO.output(relay_pins[relay_number], GPIO.HIGH)  
+                    print(f"Relay {relay_number} turned OFF")
+                elif state.upper() == 'ON':
+                    GPIO.output(relay_pins[relay_number], GPIO.LOW) 
+                    print(f"Relay {relay_number} turned ON")
+                else:
+                    print("Invalid state. Use 'ON' or 'OFF'.")
+            else:
+                print("Invalid relay number.")
+        except ValueError:
+            print("Command format error. Use '<relay number> <ON/OFF>'.")
+
     def cleanup():
+        """
+        Clean up GPIO assignments
+        """
         GPIO.cleanup()
 
     try:
@@ -327,7 +307,11 @@ def relay_function():
         print("Relay control program exited cleanly")
 
 def solar_position_function():
-    global sun_between_10_and_11_degrees
+    def print_green(text):
+        print(f"\033[92m{text}\033[0m")
+
+    def print_red(text):
+        print(f"\033[91m{text}\033[0m")
 
     try:
         gpsd.connect()
@@ -408,7 +392,6 @@ def solar_position_function():
         print_red("There are no times within the next 24 hours when the sun is between 10 and 11 degrees elevation.")
 
     print(sun_between_10_and_11)
-    sun_between_10_and_11_degrees = not sun_between_10_and_11.empty
 
 def weathersql_function():
     with open('coords.txt', 'r') as file:
@@ -607,66 +590,61 @@ def weather_terminal_function():
     else:
         print(f"Failed to retrieve weather data. HTTP status code: {response.status_code}")
 
-def check_and_run_sprinkler():
-    global total_water_applied, W_final_value, runtime_seconds_value
-    if W_final_value > 0:
-        if demo_mode:
-            # In demo mode, run sprinkler immediately
-            print_green("Demo mode: Turning on sprinkler immediately.")
-            relay_command('1 ON')
-            # Pause the code while the relay is on
-            time.sleep(runtime_seconds_value)
-            relay_command('1 OFF')
-            total_water_applied += W_final_value
-            W_final_value = 0  # Reset W_final_value after watering
-        else:
-            if sun_between_10_and_11_degrees:
-                print("Sun is between 10 and 11 degrees, turning on sprinkler.")
-                relay_command('1 ON')
-                # Pause the code while the relay is on
-                time.sleep(runtime_seconds_value)
-                relay_command('1 OFF')
-                total_water_applied += W_final_value
-                W_final_value = 0  # Reset W_final_value after watering
+def calculate_water_need_wrapper():
+    try:
+        calculate_adjusted_water_need()
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Error in calculating water need: {e}")
+
+def run_weathersql_and_terminal():
+    # run weathersql_function and weather_terminal_function
+    weathersql_thread = threading.Thread(target=weathersql_function)
+    weather_terminal_thread = threading.Thread(target=weather_terminal_function)
+
+    weathersql_thread.start()
+    weather_terminal_thread.start()
+
+    weathersql_thread.join()
+    weather_terminal_thread.join()
+
+def schedule_tasks():
+    """
+    Schedule tasks to run at specified intervals:
+    - solar_position_function every 60 seconds
+    - weathersql_function and weather_terminal_function 20 seconds after solar_position_function
+    - calculate_adjusted_water_need 35 seconds after solar_position_function
+    """
+    while True:
+        now = datetime.now()
+
+        # Calculate time until the next full minute
+        next_minute = (now + timedelta(minutes=1)).replace(second=0, microsecond=0)
+        time_to_wait = (next_minute - now).total_seconds()
+
+        # Sleep until the next full minute
+        time.sleep(time_to_wait)
+
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting scheduled tasks.")
+
+        # Run solar_position_function
+        solar_thread = threading.Thread(target=solar_position_function)
+        solar_thread.start()
+
+        # Schedule weathersql and weather_terminal to run 20 seconds later
+        threading.Timer(20, run_weathersql_and_terminal).start()
+
+        # Schedule calculate_adjusted_water_need to run 35 seconds after solar_position_function
+        threading.Timer(35, calculate_water_need_wrapper).start()
+
+        # Total cycle time is 60 seconds; no need to wait here as the loop handles the scheduling
+
+def calculate_and_run_logic():
+    calculate_adjusted_water_need()
 
 if __name__ == "__main__":
-    # Ask user if they want to run this code in demo mode
-    demo_answers = ['yes', 'YES', 'y', 'Y', 'yEs', 'YEs', 'yES', 'yeS']
-    no_answers = ['n', 'N', 'no', 'NO', 'No', 'nO']
-
-    demo_mode = False
-    user_input = input("Do you wish to run this code in demo mode? ").strip()
-    if user_input in demo_answers:
-        demo_mode = True
-        print_green("Running in demo mode...")
-
-        print(f"Garden Area = {GARDEN_AREA:.2f} m²")
-        print(f"Sprinkler Flow Rate = {FLOW_RATE:.2f} L/min")
-        print(f"Water needed per day per sq meter = {BASELINE_WATER_PER_SQ_METER:.2f} L/m²/day")
-        data_check = input("Do you wish to change the current settings for your garden? ").strip()
-        if data_check in demo_answers:
-            GARDEN_AREA = input("New Garden Area = ").strip()
-            FLOW_RATE = input("New Sprinkler Flow Rate = ").strip()
-            BASELINE_WATER_PER_SQ_METER = input("New water per day per sq meter = ").strip()
-            GARDEN_AREA = float(GARDEN_AREA)
-            FLOW_RATE = float(FLOW_RATE)
-            BASELINE_WATER_PER_SQ_METER = float(BASELINE_WATER_PER_SQ_METER)
-            print(f"{GARDEN_AREA:.2}")
-            print(f"{FLOW_RATE:.2f}")
-            print(f"{BASELINE_WATER_PER_SQ_METER:.2f}")
-
-    elif user_input in no_answers:
-        demo_mode = False
-    else:
-        print("Invalid input. Exiting.")
-        exit()
-
     # Initialize GPIO settings
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)  # Use Broadcom pin-numbering scheme
-
-    # Setup relay pins
-    GPIO.setup(list(relay_pins.values()), GPIO.OUT, initial=GPIO.HIGH)
 
     # Start temperature_function in a separate thread
     temp_thread = threading.Thread(target=temperature_function)
@@ -684,3 +662,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nProgram terminated by user.")
         GPIO.cleanup()
+

@@ -5,17 +5,27 @@ cd ~/dht22env
 source bin/activate
 cd ~
 
+python logic.py
+
+
+cd ~/dht22env
+source bin/activate
+cd ~
+rm logic2.py
+nano logic2.py
 
 read_dht22.py
 
 
 deactivate
+sudo shutdown now
 
 
 python read_dht22.py (Replaced by temperature.py)
 python read_temp.py (Replaced by temperature.py)
 python temperature.py
 
+./reset_gpio.sh
 
 python solar_position.py
 nano countdown.txt (meansures the amount of tiem in seconds until the closest time the sun reaches 10 degress)
