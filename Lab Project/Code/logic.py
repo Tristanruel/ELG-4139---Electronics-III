@@ -42,7 +42,7 @@ weather_data = {
 }
 
 # Initialize total water applied
-total_water_applied = 4.27  # Initial total water applied, in Liters
+total_water_applied = 4.36  # Initial total water applied, in Liters
 sun_between_10_and_11_degrees = False  # Flag to indicate sun position
 W_final_value = 0.0
 runtime_seconds_value = 0.0
@@ -95,7 +95,8 @@ def calculate_adjusted_water_need():
     if demo_mode:
         max_forecast_precipitation = 2 # mm
         P_forecast_limited = min(P_forecast, max_forecast_precipitation)
-        P_total = (P_past + P_forecast_limited) * GARDEN_AREA
+        P_past_limited = min(P_past, max_forecast_precipitation)
+        P_total = (P_past_limited + P_forecast_limited) * GARDEN_AREA
     else:
         P_total = (P_past + P_forecast) * GARDEN_AREA # mm * m² = L
 
@@ -110,7 +111,6 @@ def calculate_adjusted_water_need():
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
     print(f"Sprinkler needs to run for {runtime_seconds:.2f} seconds. This equals {W_final:.2f}L of water for a garden of {GARDEN_AREA:.2f} square meters.")
     print(f"Total water applied: {total_water_applied:.2f} L.\n")
-    """
     print(f"T_current: {T_current}")
     print(f"H_current: {H_current}")
     print(f"F_temp: {F_temp}")
@@ -126,7 +126,6 @@ def calculate_adjusted_water_need():
     print(f"P_total: {P_total}")
     print(f"Total Water Applied: {total_water_applied}")
     print(f"W_final before max check: {W_adj - P_total - total_water_applied}")
-    """
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
     print(f"Sprinkler needs to run for {runtime_seconds:.2f} seconds. This equals {W_final:.2f}L of water for a garden of {GARDEN_AREA:.2f} square meters.")
     print(f"Total water applied: {total_water_applied:.2f} L.\n")
